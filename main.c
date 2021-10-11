@@ -14,9 +14,10 @@
 #define COPY 3
 #define DELETE 4
 #define LINK 5
-#define LOOKDIR 6
+#define SYMLINK 6
+#define LOOKDIR 7
 
-#define OPERATIONS_COUNT 7
+#define OPERATIONS_COUNT 8
 void commands_init(char *commands[])
 {
     commands[CREATE] = "create";
@@ -25,6 +26,7 @@ void commands_init(char *commands[])
     commands[COPY] = "copy";
     commands[DELETE] = "delete";
     commands[LINK] = "link";
+    commands[SYMLINK] = "symlink";
     commands[LOOKDIR] = "lookdir";
 }
 
@@ -153,12 +155,29 @@ void delete_file(const char *pathname)
 {
     if (unlink(pathname) == -1)
     {
-        err_quit("Файл %s не может быть удален\n", pathname);
+        err_quit("2Файл %s не может быть удален\n", pathname);
     }
     else
     {
         printf("Файл %s успешно удален\n", pathname);
     }
+}
+
+void look_dir(const char *pathname)
+{
+    struct dirent *entry;
+    DIR *dir = opendir(pathname);
+    if (dir == NULL)
+    {
+        err_quit("Ошибка открытия  директории %s\n", pathname);
+    }
+
+    while ((entry = readdir(dir)) != NULL)
+    {
+        printf("%s\n", entry->d_name);
+    }
+
+    closedir(dir);
 }
 
 int main(int argc, char *argv[])
@@ -204,18 +223,32 @@ int main(int argc, char *argv[])
         delete_file(argv[2]);
         break;
     case LINK:
-        if (argc != 3)
+        if (argc != 4)
         {
-            err_quit("Использование: ./filem link <Имя файла 1>\n");
+            err_quit("Использование: ./filem link <Имя файла 1> <Имя жесткой ссылки>\n");
         }
-        delete_file(argv[2]);
+        link(argv[2], argv[3]);
+        break;
+    case SYMLINK:
+        if (argc != 4)
+        {
+            err_quit("Использование: ./filem sublink <Имя файла> <Имя символической ссылки>\n");
+        }
+        symlink(argv[2], argv[3]);
         break;
     case LOOKDIR:
-        if (argc > 2)
+        if (argc > 3 || argc < 2)
         {
-            err_quit("Использование: ./filem lookdir [Имя файла 1]\n");
+            err_quit("Использование: ./filem lookdir <Имя файла 1>\n");
         }
-        delete_file(argv[2]);
+        if (argc == 2)
+        {
+            look_dir("./");
+        }
+        else
+        {
+            look_dir(argv[2]);
+        }
         break;
     default:
         err_quit("Использование: ./filem <command> <Имя файла 1> [Имя файла 2]\n");
